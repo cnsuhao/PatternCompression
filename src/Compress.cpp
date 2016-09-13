@@ -9,6 +9,22 @@
 
 using namespace std;
 
+void ComputeScore(vector<string>* combos, map<string, int>* scores, int i) {
+	if ((*scores).find((*combos)[i]) == (*scores).end()) {}
+	else {
+		return;
+	}
+	int duplicates = 0;
+	for (int n = 0; n < (*combos).size(); n++)
+	{
+		if ((*combos)[n] == (*combos)[i])
+		{
+			duplicates++;
+		}
+	}
+	(*scores)[(*combos)[i]] = duplicates * (*combos)[i].size() - duplicates - 2 - (*combos)[i].size();
+}
+
 int Compress::PatternCompress(char* InputFileName, char* OutputFileName)
 {
 	ifstream infile; infile.open(InputFileName); if (!infile) { cout << "Couldn't open " << InputFileName << endl; return -1; }
@@ -55,24 +71,38 @@ int Compress::PatternCompress(char* InputFileName, char* OutputFileName)
 	{
 		ss << lines[i] << '\n';
 	}
+	string file = ss.str();
 	// Calculate filesize
-	size_t filesize = ss.str().size() * sizeof(char);
+	//size_t filesize = file.size() * sizeof(char);
 	// Calculate max combination size
 	int maxComboSize = floorf(((float)ss.str().size()) / 2.0f);
 	// Populate combinations vector
 	vector<string> combinations = vector<string>();
+	string curStr;
 	for (int i = 2; i < maxComboSize; i++)
 	{
-		for (int n = 0; n < ss.str().size() - (i-1); n++)
+		for (int n = 0; n < file.size() - (i-1); n++)
 		{
-			combinations.push_back(ss.str().substr(n, n+i));
+			curStr = file.substr(n, i);
+			combinations.push_back(curStr);
 		}
 	}
 
-	// Count combinations
-	map<string, int> dup;
-	for_each(combinations.begin(), combinations.end(), [&dup](string val) { dup[val]++; });
-	cout << ss.str().size() << endl;
+	// Count combinations and score
+	map<string, int> scores;
+	map<string, int> finalScores;
+	//for_each(combinations.begin(), combinations.end(), [&scores](string val) { scores[val]++; });
+	for (int i = 0; i < combinations.size(); i++)
+	{
+		ComputeScore(&combinations, &scores, i);
+	}
+	// Destroy negative scores
+	for (auto p : scores) {
+		if (p.second > 1)
+		{
+			finalScores[p.first] = p.second;
+		}
+	}
 
 
 	/*
