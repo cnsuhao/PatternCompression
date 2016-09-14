@@ -1,6 +1,6 @@
 namespace Compress
 {
-	int PatternCompress(char* InputFileName, char* OutputFileName);
+	int PatternCompress(const char* InputFileName, const char* OutputFileName);
 }
 
 

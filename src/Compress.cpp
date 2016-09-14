@@ -13,6 +13,21 @@
 
 using namespace std;
 
+// trim from end (in place)
+static inline void rtrim(string &s) {
+    s.erase(find_if(s.rbegin(), s.rend(),
+                         not1(ptr_fun<int, int>(isspace))).base(), s.end());
+}
+
+string ReplaceString(string subject, const string& search, const string& replace) {
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::string::npos) {
+        subject.replace(pos, search.length(), replace);
+        pos += replace.length();
+    }
+    return subject;
+}
+
 void ComputeScore(vector<string>* combos, map<string, int>* scores, int i) {
 	if ((*scores).find((*combos)[i]) == (*scores).end()) {}
 	else {
@@ -29,7 +44,7 @@ void ComputeScore(vector<string>* combos, map<string, int>* scores, int i) {
 	(*scores)[(*combos)[i]] = duplicates * (*combos)[i].size() - duplicates - 2 - (*combos)[i].size();
 }
 
-int Compress::PatternCompress(char* InputFileName, char* OutputFileName)
+int Compress::PatternCompress(const char* InputFileName, const char* OutputFileName)
 {
 	ifstream infile; infile.open(InputFileName); if (!infile) { cout << "Couldn't open " << InputFileName << endl; return -1; }
 	vector<string> lines = vector<string>();
@@ -64,11 +79,6 @@ int Compress::PatternCompress(char* InputFileName, char* OutputFileName)
 	if (it != availables.end())	availables.erase(it);
 #endif // Platform
 	cout << "Available characters: " << availables.size() << endl;
-	cout << "Characters: " << endl;
-	for (int i = 0; i < availables.size(); i++)
-	{
-		cout << availables[i];
-	}
 	// Combine lines 
 	stringstream ss;
 	for (int i = 0; i < lines.size(); i++)
@@ -77,43 +87,96 @@ int Compress::PatternCompress(char* InputFileName, char* OutputFileName)
 	}
 	string file = ss.str();
 	// Calculate filesize
-	//size_t filesize = file.size() * sizeof(char);
+	size_t filesize = file.size() * sizeof(char);
+    cout << "Input file size: " << filesize << endl;
 	// Calculate max combination size
 #ifdef _WIN32
 	int maxComboSize = floorf(((float)ss.str().size()) / 2.0f);
 #elif __APPLE__
     int maxComboSize = floor(((float)ss.str().size()) / 2.0f);
 #endif
-    // Populate combinations vector
-	vector<string> combinations = vector<string>();
-	string curStr;
-	for (int i = 2; i < maxComboSize; i++)
-	{
-		for (int n = 0; n < file.size() - (i-1); n++)
-		{
-			curStr = file.substr(n, i);
-			combinations.push_back(curStr);
-		}
-	}
+    
+    string curStr;
+    map<char, string> patterns;
+    string pattern;
+    vector<char> keys;
+    unsigned int savedChars = 0;
+    
+    for (int j = 0; j < availables.size(); j++) {
+        // Populate combinations vector
+        vector<string> combinations = vector<string>();
+        for (int i = 2; i < maxComboSize; i++)
+        {
+            for (int n = 0; n < file.size() - (i-1); n++)
+            {
+                curStr = file.substr(n, i);
+                combinations.push_back(curStr);
+            }
+        }
 
-	// Count combinations and score
-	map<string, int> scores;
-	map<string, int> finalScores;
-	//for_each(combinations.begin(), combinations.end(), [&scores](string val) { scores[val]++; });
-	for (int i = 0; i < combinations.size(); i++)
-	{
-		ComputeScore(&combinations, &scores, i);
-	}
-	// Destroy negative scores
-	for (auto p : scores) {
-		if (p.second > 1)
-		{
-			finalScores[p.first] = p.second;
-		}
-	}
+        // Count combinations and score
+        map<string, int> scores;
+        //map<string, int> finalScores;
+        int score = 0;
+        //for_each(combinations.begin(), combinations.end(), [&scores](string val) { scores[val]++; });
+        for (int i = 0; i < combinations.size(); i++)
+        {
+            ComputeScore(&combinations, &scores, i);
+        }
+        // Destroy negative scores
+        for (auto p : scores) {
+            if (p.second > 1)
+            {
+                if (p.second > score) {
+                    score = p.second;
+                    pattern = p.first;
+                    
+                }
+                //finalScores[p.first] = p.second;
+            }
+        }
+        if (score == 0) {
+            break;
+        }
+        
+        savedChars += score;
+        
+        patterns[availables[j]] = pattern;
+        keys.push_back(availables[j]);
+        cout << availables[j] << "\t\t" << patterns[availables[j]] << endl;
+        
+        //Replace all occurences of pattern
+        stringstream strstrm;
+        strstrm << availables[j];
+        file = ReplaceString(file, patterns[availables[j]], strstrm.str());
+    }
+    
+    savedChars++;
+    cout << "Pattern count: " << keys.size() << endl;
+    cout << "Saved characters: " << savedChars << endl;
+    
+    stringstream newss;
+    newss << (char)keys.size();
+    for (int i = keys.size()-1; i >= 0; i--) {
+        newss << (char)patterns[keys[i]].size() << keys[i] << patterns[keys[i]];
+    }
+    cout << "Header: " << newss.str() << endl;
+    rtrim(file);
+    newss << file;
+    size_t ofilesize = newss.str().size() * sizeof(char);
+    cout << "Output file size: " << ofilesize << endl;
+    cout << "Percent saved: " << 100 - ((float)ofilesize / (float)filesize)*100.0f << "%" << endl;
+    //Write result to file
+    ofstream outfile(OutputFileName);
+    outfile << newss.str();
+    outfile.close();
+	infile.close();
+	return 0;
+}
 
 
-	/*
+
+/*
 	// Boost Compute Init
 	bc::device gpu = bc::system::default_device();
 	bc::context context(gpu);
@@ -131,8 +194,3 @@ int Compress::PatternCompress(char* InputFileName, char* OutputFileName)
 	kernel.set_arg(2, buffers[2]);
 	bc::command_queue queue(context, gpu);
 	*/
-
-
-	infile.close();
-	return 0;
-}
