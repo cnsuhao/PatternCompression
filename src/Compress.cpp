@@ -107,23 +107,24 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
     cout << "Input file size: " << filesize << endl;
 	// Calculate max combination size
 
-    
     string curStr;
     map<char, string> patterns;
     string pattern;
     vector<char> keys;
     unsigned int savedChars = 0;
-
-#ifdef _WIN32
 	unsigned int beginTime = clock();
-#endif // _WIN32
-	// Init OpenCL
 	if (useOpenCL)
 	{
+		// Init OpenCL
 		cout << "Using OpenCL.\n";
 		unsigned int compileBegin = clock();
+		cout << "Devices:\n";
+		for (auto p : bc::system::devices())
+		{
+			cout << p.name() << endl;
+		}
 		bc::device gpu = bc::system::default_device();
-		bc::context context(gpu);
+		bc::context context(bc::system::devices());
 		string kernelSource;
 		b::filesystem::load_string_file(b::filesystem::path("Compress.cl"), kernelSource);
 		bc::program program = bc::program::create_with_source(kernelSource, context);
@@ -134,13 +135,10 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 		kernel.set_arg(1, buffers[1]);
 		bc::command_queue queue(context, gpu);
 		cout << "OpenCL kernel compile time: " << clock() - compileBegin << endl;
+		
 		beginTime = clock();
 		for (int j = 0; j < availables.size(); j++) {
-#ifdef _WIN32
-			int maxComboSize = floorf(((float)file.size()) / 2.0f);
-#elif __APPLE__
 			int maxComboSize = floor(((float)file.size()) / 2.0f);
-#endif
 
 			buffers[0] = bc::buffer(context, sizeof(char) * file.size());
 			kernel.set_arg(0, buffers[0]);
@@ -174,7 +172,6 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 			if (highscore <= 0) {
 				break;
 			}
-
 			savedChars += highscore;
 
 			patterns[availables[j]] = pattern;
@@ -190,11 +187,7 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 		
 	}else{
 		for (int j = 0; j < availables.size(); j++) {
-	#ifdef _WIN32
-			int maxComboSize = floorf(((float)file.size()) / 2.0f);
-	#elif __APPLE__
 			int maxComboSize = floor(((float)file.size()) / 2.0f);
-	#endif
 			// Populate combinations vector
 			vector<string> combinations = vector<string>();
 			for (int i = 2; i < maxComboSize; i++)
@@ -238,7 +231,7 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 			}
     
 			savedChars += score;
-    
+			
 			patterns[availables[j]] = pattern;
 			keys.push_back(availables[j]);
 			cout << availables[j] << "\t\t" << patterns[availables[j]] << endl;
@@ -250,15 +243,13 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 		}
 	}
 	
-#ifdef _WIN32
 	cout << "Compute time: " << clock() - beginTime << "ms\n";
-#endif // _WIN32
 
     
     savedChars++;
     cout << "Pattern count: " << keys.size() << endl;
     cout << "Saved characters: " << savedChars << endl;
-    
+	
     stringstream newss;
     newss << (char)keys.size();
     for (int i = keys.size()-1; i >= 0; i--) {
