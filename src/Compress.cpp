@@ -117,10 +117,11 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 #ifdef _WIN32
 	unsigned int beginTime = clock();
 #endif // _WIN32
-	
 	// Init OpenCL
 	if (useOpenCL)
 	{
+		cout << "Using OpenCL.\n";
+		unsigned int compileBegin = clock();
 		bc::device gpu = bc::system::default_device();
 		bc::context context(gpu);
 		string kernelSource;
@@ -132,10 +133,8 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 		buffers[1] = bc::buffer(context, sizeof(int));
 		kernel.set_arg(1, buffers[1]);
 		bc::command_queue queue(context, gpu);
-		
-
-		
-
+		cout << "OpenCL kernel compile time: " << clock() - compileBegin << endl;
+		beginTime = clock();
 		for (int j = 0; j < availables.size(); j++) {
 #ifdef _WIN32
 			int maxComboSize = floorf(((float)file.size()) / 2.0f);
@@ -143,39 +142,32 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 			int maxComboSize = floor(((float)file.size()) / 2.0f);
 #endif
 
+			buffers[0] = bc::buffer(context, sizeof(char) * file.size());
+			kernel.set_arg(0, buffers[0]);
+			queue.enqueue_write_buffer(buffers[0], 0, sizeof(char) * file.size(), file.c_str());
+
 			int* scorelist;
-			stringstream combos;
 			int highscore = 0;
 			for (int i = 2; i < maxComboSize; i++)
 			{
 				scorelist = new int[file.size() - (i - 1)];
 				queue.enqueue_write_buffer(buffers[1], 0, sizeof(int), &i);
-				for (int n = 0; n < file.size() - (i - 1); n++)
-				{
-					curStr = file.substr(n, i);
-					combos << curStr;
-					scorelist[n] = 0;
-				}
-				buffers[0] = bc::buffer(context, sizeof(char) * combos.str().size());
 				buffers[2] = bc::buffer(context, (file.size() - (i - 1)) * sizeof(int));
-				kernel.set_arg(0, buffers[0]);
 				kernel.set_arg(2, buffers[2]);
-				unsigned int scoreBegin = clock();
-				queue.enqueue_write_buffer(buffers[0], 0, sizeof(char) * combos.str().size(), combos.str().c_str());
+				//unsigned int scoreBegin = clock();
 				queue.enqueue_write_buffer(buffers[2], 0, (file.size() - (i - 1)) * sizeof(int), scorelist);
 				queue.enqueue_1d_range_kernel(kernel, 0, file.size() - (i - 1), 0);
 				queue.enqueue_read_buffer(buffers[2], 0, (file.size() - (i - 1)) * sizeof(int), scorelist);
-				cout << "Score compute: " << clock() - scoreBegin << endl;
+				//cout << "Score compute: " << clock() - scoreBegin << endl;
 				for (int n = 0; n < file.size() - (i - 1); n++)
 				{
 					if (scorelist[n] > highscore)
 					{
 						highscore = scorelist[n];
-						pattern = combos.str().substr(i*n, i);
+						pattern = file.substr(n, i);
 					}
 				}
 				delete scorelist;
-				combos.str("");
 			}
 			cout << "Character amount: " << file.size() << endl;
 			
@@ -284,24 +276,3 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
     outfile.close();
 	return 0;
 }
-
-
-
-/*
-	// Boost Compute Init
-	bc::device gpu = bc::system::default_device();
-	bc::context context(gpu);
-	bc::buffer buffers[3];
-	buffers[0] = bc::buffer(context, filesize);
-	buffers[1] = bc::buffer(context, componentSize);
-	buffers[2] = bc::buffer(context, 2 * sizeof(float));
-	string kernelSource;
-	b::filesystem::load_string_file(b::filesystem::path("Compress.cl"), kernelSource);
-	bc::program program = bc::program::create_with_source(kernelSource, context);
-	program.build();
-	bc::kernel kernel(program, "computePosition");
-	kernel.set_arg(0, buffers[0]);
-	kernel.set_arg(1, buffers[1]);
-	kernel.set_arg(2, buffers[2]);
-	bc::command_queue queue(context, gpu);
-	*/
