@@ -17,7 +17,7 @@ if (MSVC)
     #LINK_DIRECTORIES(${LIBDIR} "C:/Boost/boost_1_61_0/stage/lib")
     #target_link_libraries(${ExeName})
 elseif (UNIX)
-	
+	include_directories(${CMAKE_BINARY_DIR}/../include)
 	#SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -lGL -lGLEW -lSDL2 -lSDL2main" )	
 	#find_package (SDL2 REQUIRED)
 	#find_package (GLM REQUIRED)

@@ -6,6 +6,10 @@
 #include <string>
 #include <vector>
 #include <map>
+#ifdef __APPLE__
+#include <math.h>
+#endif
+
 
 using namespace std;
 
@@ -44,7 +48,7 @@ int Compress::PatternCompress(char* InputFileName, char* OutputFileName)
 		for (int n = 0; n < lines[i].size(); n++) {
 			if (characters[lines[i][n]] == false) {
 				characters[lines[i][n]] = true;
-#ifdef __unix__
+#ifdef __APPLE__
 				availables.erase(std::remove(availables.begin(), availables.end(), lines[i][n]), availables.end());
 #elif _WIN32
 				auto it = std::find(availables.begin(), availables.end(), lines[i][n]);
@@ -53,7 +57,7 @@ int Compress::PatternCompress(char* InputFileName, char* OutputFileName)
 			}
 		}
 	}
-#ifdef __unix__
+#ifdef __APPLE__
 	availables.erase(std::remove(availables.begin(), availables.end(), '\n'), availables.end());
 #elif _WIN32
 	auto it = std::find(availables.begin(), availables.end(), '\n');
@@ -75,8 +79,12 @@ int Compress::PatternCompress(char* InputFileName, char* OutputFileName)
 	// Calculate filesize
 	//size_t filesize = file.size() * sizeof(char);
 	// Calculate max combination size
+#ifdef _WIN32
 	int maxComboSize = floorf(((float)ss.str().size()) / 2.0f);
-	// Populate combinations vector
+#elif __APPLE__
+    int maxComboSize = floor(((float)ss.str().size()) / 2.0f);
+#endif
+    // Populate combinations vector
 	vector<string> combinations = vector<string>();
 	string curStr;
 	for (int i = 2; i < maxComboSize; i++)
