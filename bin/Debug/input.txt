@@ -1,4 +1,2 @@
-hahahah hah hahw da 
-wda jfies fs e
-fs nfjksn ekjfn se 
-f snef nsef n
+set(BOOST_ROOT "C:/Boost/boost_1_61_0/")
+set(BOOST_LIBRARYDIR "C:/Boost/boost_1_61_0/stage/lib/")
