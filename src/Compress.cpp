@@ -256,7 +256,7 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
         newss << (char)patterns[keys[i]].size() << keys[i] << patterns[keys[i]];
     }
     cout << "Header: " << newss.str() << endl;
-    rtrim(file);
+    //rtrim(file);
     newss << file;
     size_t ofilesize = newss.str().size() * sizeof(char);
     cout << "Output file size: " << ofilesize << endl;
