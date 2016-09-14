@@ -15,7 +15,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
 
 if (MSVC)
-    include_directories(${CMAKE_BINARY_DIR}/../include "C:\\Dependencies\\include" "C:\\Program Files %28x86%29\\AMD APP SDK\\3.0\\include")
+    include_directories(${CMAKE_BINARY_DIR}/../include "C:\\Dependencies\\include")
 endif (MSVC)
 #if (UNIX)
 	# SET(MACOSX_DEPLOYMENT_TARGET ${DARWIN_MAJOR_SDK_VERSION}.${DARWIN_MINOR_SDK_VERSION})
