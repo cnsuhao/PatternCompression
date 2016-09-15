@@ -283,3 +283,36 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
     outfile.close();
 	return 0;
 }
+
+
+
+int PatternDecompress(const char* InputFileName, const char* OutputFileName) {
+    string file;
+    b::filesystem::load_string_file(b::filesystem::path(InputFileName), file);
+    int patternCount;
+    patternCount = file[0];
+    
+    int p = 1;
+    int patternSize;
+    map<char, string> patterns;
+    
+    for (int x = 0; x < patternCount; x++) {
+        patternSize = file[p];
+        patterns[file[p+1]] = file.substr(p+2, patternSize);
+        p += 2 + patternSize;
+    }
+    
+    file = file.substr(p,file.size()-p);
+    
+    
+    
+    
+}
+
+
+
+
+
+
+
+
