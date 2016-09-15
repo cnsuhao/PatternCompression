@@ -16,6 +16,7 @@
 // Platform specific
 #ifdef __APPLE__
 #include <math.h>
+#include <sys/time.h>
 #elif _WIN32 
 #include <ctime>
 #include <functional>
@@ -23,6 +24,17 @@
 
 namespace bc = boost::compute; namespace b = boost;
 using namespace std;
+
+unsigned getTickCount()
+{
+#ifdef _WIN32
+    return clock();
+#else
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    return unsigned((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
+#endif
+}
 
 // trim from end (in place)
 static inline void rtrim(string &s) {
@@ -92,6 +104,8 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 	it = std::find(availables.begin(), availables.end(), '\0');
 	if (it != availables.end())	availables.erase(it);
 
+    
+    
 #endif // Platform
 	cout << "Available characters: " << availables.size() << endl;
 	// Combine lines 
@@ -112,19 +126,21 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
     string pattern;
     vector<char> keys;
     unsigned int savedChars = 0;
-	unsigned int beginTime = clock();
+	unsigned int beginTime = getTickCount();
+    
 	if (useOpenCL)
 	{
 		// Init OpenCL
 		cout << "Using OpenCL.\n";
-		unsigned int compileBegin = clock();
+		unsigned int compileBegin = getTickCount();
 		cout << "Devices:\n";
 		for (auto p : bc::system::devices())
 		{
-			cout << p.name() << endl;
+			cout << p.name() << " - " << p.compute_units() << endl;
 		}
+        cout << "Default: " <<bc::system::default_device().name() << endl;
 		bc::device gpu = bc::system::default_device();
-		bc::context context(bc::system::devices());
+		bc::context context(gpu);
 		string kernelSource;
 		b::filesystem::load_string_file(b::filesystem::path("Compress.cl"), kernelSource);
 		bc::program program = bc::program::create_with_source(kernelSource, context);
@@ -134,9 +150,9 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 		buffers[1] = bc::buffer(context, sizeof(int));
 		kernel.set_arg(1, buffers[1]);
 		bc::command_queue queue(context, gpu);
-		cout << "OpenCL kernel compile time: " << clock() - compileBegin << endl;
+		cout << "OpenCL kernel compile time: " << getTickCount() - compileBegin << endl;
 		
-		beginTime = clock();
+		beginTime = getTickCount();
 		for (int j = 0; j < availables.size(); j++) {
 			int maxComboSize = floor(((float)file.size()) / 2.0f);
 
@@ -152,11 +168,11 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 				queue.enqueue_write_buffer(buffers[1], 0, sizeof(int), &i);
 				buffers[2] = bc::buffer(context, (file.size() - (i - 1)) * sizeof(int));
 				kernel.set_arg(2, buffers[2]);
-				//unsigned int scoreBegin = clock();
+				//unsigned int scoreBegin = getTickCount();
 				queue.enqueue_write_buffer(buffers[2], 0, (file.size() - (i - 1)) * sizeof(int), scorelist);
 				queue.enqueue_1d_range_kernel(kernel, 0, file.size() - (i - 1), 0);
 				queue.enqueue_read_buffer(buffers[2], 0, (file.size() - (i - 1)) * sizeof(int), scorelist);
-				//cout << "Score compute: " << clock() - scoreBegin << endl;
+				//cout << "Score compute: " << getTickCount() - scoreBegin << endl;
 				for (int n = 0; n < file.size() - (i - 1); n++)
 				{
 					if (scorelist[n] > highscore)
@@ -205,15 +221,15 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 			map<string, int> scores;
 			//map<string, int> finalScores;
 			int score = 0;
-			unsigned int scoreBegin = clock();
+			unsigned int scoreBegin = getTickCount();
 			for (int i = 0; i < combinations.size(); i++)
 			{
 				ComputeScore(&combinations, &scores, i);
 			}
 
-			cout << "Score compute: " << clock() - scoreBegin << endl;
+			cout << "Score compute: " << getTickCount() - scoreBegin << endl;
 			// Destroy negative scores
-			unsigned int purgeBegin = clock();
+			unsigned int purgeBegin = getTickCount();
 			for (auto p : scores) {
 				if (p.second > 1)
 				{
@@ -225,7 +241,7 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 					//finalScores[p.first] = p.second;
 				}
 			}
-			cout << "Purge compute: " << clock() - purgeBegin << endl; 
+			cout << "Purge compute: " << getTickCount() - purgeBegin << endl;
 			if (score == 0) {
 				break;
 			}
@@ -243,7 +259,7 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 		}
 	}
 	
-	cout << "Compute time: " << clock() - beginTime << "ms\n";
+	cout << "Compute time: " << getTickCount() - beginTime << "ms\n";
 
     
     savedChars++;
