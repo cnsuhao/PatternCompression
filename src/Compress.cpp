@@ -286,27 +286,45 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 
 
 
-int PatternDecompress(const char* InputFileName, const char* OutputFileName) {
+int Decompress::PatternDecompress(const char* InputFileName, const char* OutputFileName) {
     string file;
     b::filesystem::load_string_file(b::filesystem::path(InputFileName), file);
     int patternCount;
     patternCount = file[0];
     
+	cout << "Decompressing..." << endl;
+
     int p = 1;
     int patternSize;
     map<char, string> patterns;
-    
+	vector<char> keys;
+
     for (int x = 0; x < patternCount; x++) {
         patternSize = file[p];
         patterns[file[p+1]] = file.substr(p+2, patternSize);
+		keys.push_back(file[p + 1]);
         p += 2 + patternSize;
     }
     
     file = file.substr(p,file.size()-p);
+	stringstream converter;
+	converter.str("");
+	for (int i = keys.size()-1; i >= 0; i--)
+	{
+		converter << keys[i];
+		// boost::replace_all(file, converter.str().c_str(), patterns[keys[i]].c_str());
+		for (int i = 0; i < length; i++)
+		{
+
+		}
+		converter.str("");
+	}
+
+	ofstream outfile(OutputFileName);
+	outfile << file;
+	outfile.close();
     
-    
-    
-    
+	return 0;
 }
 
 
