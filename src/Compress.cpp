@@ -71,8 +71,8 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 		getline(infile, curLine);
 		lines.push_back(curLine);
 	}
-	map<char, bool> characters = map<char, bool>();
-	vector<char> availables = vector<char>();
+	map<unsigned char, bool> characters = map<unsigned char, bool>();
+	vector<unsigned char> availables = vector<unsigned char>();
 	for (int i = 0; i <= 255; i++) {
 		characters[i] = false;
 		availables.push_back(i);
@@ -90,18 +90,52 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 			}
 		}
 	}
-#ifdef __APPLE__
-	availables.erase(std::remove(availables.begin(), availables.end(), '\n'), availables.end());
-	availables.erase(std::remove(availables.begin(), availables.end(), '\0'), availables.end());
-#elif _WIN32
-	auto it = std::find(availables.begin(), availables.end(), '\n');
-	if (it != availables.end())	availables.erase(it); 
-	it = std::find(availables.begin(), availables.end(), '\0');
-	if (it != availables.end())	availables.erase(it);
+	vector<char> unusables = vector<char>();
+	unusables.push_back('\n');
+	unusables.push_back('\0');
+	unusables.push_back((char)3);
+	unusables.push_back((char)4);
+	unusables.push_back((char)5);
+	unusables.push_back((char)6);
+	unusables.push_back((char)7);
+	unusables.push_back((char)8);
+	unusables.push_back((char)11);
+	unusables.push_back((char)12);
+	unusables.push_back((char)14);
+	unusables.push_back((char)15);
+	unusables.push_back((char)16);
+	unusables.push_back((char)17);
+	unusables.push_back((char)18);
+	unusables.push_back((char)19);
+	unusables.push_back((char)20);
+	unusables.push_back((char)21);
+	unusables.push_back((char)22);
+	unusables.push_back((char)23);
+	unusables.push_back((char)24);
+	unusables.push_back((char)25);
+	unusables.push_back((char)26);
+	unusables.push_back((char)27);
+	unusables.push_back((char)28);
+	unusables.push_back((char)29);
+	unusables.push_back((char)30);
+	unusables.push_back((char)31);
+	unusables.push_back((char)37);
+	unusables.push_back((char)38);
 
-    
-    
+#ifdef _WIN32
+	auto it = std::find(availables.begin(), availables.end(), unusables[0]);
+#endif // _WIN32
+
+	for (int i = 0; i < unusables.size(); i++)
+	{
+#ifdef __APPLE__
+		availables.erase(std::remove(availables.begin(), availables.end(), unusables[i]), availables.end());
+#elif _WIN32
+		it = std::find(availables.begin(), availables.end(), unusables[i]);
+		if (it != availables.end())	availables.erase(it); 
 #endif // Platform
+	}
+
 	cout << "Available characters: " << availables.size() << endl;
 	// Combine lines 
 	stringstream ss;
@@ -303,16 +337,21 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 
 
 int Decompress::PatternDecompress(const char* InputFileName, const char* OutputFileName, bool debug) {
-    string file;
+    //string file;
     //b::filesystem::load_string_file(b::filesystem::path(InputFileName), file);
 	ifstream infile; infile.open(InputFileName); if (!infile) { cout << "Couldn't open " << InputFileName << endl; return -1; }
-	stringstream filestream;
+	/*stringstream filestream;
 	string curLine;
 	while (!infile.eof()) {
-		getline(infile, curLine);
-		filestream << curLine << '\n';
+		//getline(infile, curLine);
+		//filestream << curLine << '\n';
+		filestream << infile;
+		infile >> filestream;
+		file << infile.get;
 	}
-	file = filestream.str();
+	file = filestream.str();*/
+	string file{ istreambuf_iterator<char>(infile), istreambuf_iterator<char>() };
+
     int patternCount = file[0];
     
 	cout << "Decompressing..." << endl;
@@ -322,8 +361,8 @@ int Decompress::PatternDecompress(const char* InputFileName, const char* OutputF
 
     int p = 1;
 	int patternSize;
-    map<char, string> patterns;
-	vector<char> keys;
+    map<unsigned char, string> patterns;
+	vector<unsigned char> keys;
 	
     for (int x = patternCount-1; x >= 0; x--) {
         patternSize = (int)file[p];
