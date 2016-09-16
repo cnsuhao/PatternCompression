@@ -36,21 +36,6 @@ unsigned getTickCount()
 #endif
 }
 
-// trim from end (in place)
-static inline void rtrim(string &s) {
-    s.erase(find_if(s.rbegin(), s.rend(),
-                         not1(ptr_fun<int, int>(isspace))).base(), s.end());
-}
-
-string ReplaceString(string subject, const string& search, const string& replace) {
-    size_t pos = 0;
-    while ((pos = subject.find(search, pos)) != std::string::npos) {
-        subject.replace(pos, search.length(), replace);
-        pos += replace.length();
-    }
-    return subject;
-}
-
 void ComputeScore(vector<string>* combos, map<string, int>* scores, int i) {
 	if ((*scores).find((*combos)[i]) == (*scores).end()) {}
 	else {
@@ -195,9 +180,16 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 			cout << availables[j] << "\t\t" << patterns[availables[j]] << endl;
 
 			//Replace all occurences of pattern
-			stringstream strstrm;
-			strstrm << availables[j];
-			file = ReplaceString(file, patterns[availables[j]], strstrm.str());
+			//stringstream strstrm;
+			//strstrm << availables[j];
+            
+			//file = ReplaceString(file, patterns[availables[j]], strstrm.str());
+            
+            stringstream strstrm;
+            strstrm.str("");
+            strstrm << availables[j];
+            file = boost::replace_all_copy(file, strstrm.str(), patterns[availables[j]]);
+            b::algorithm::replace_all(file, strstrm.str(), <#const Range2T &Format#>)
 		}
 		
 		
@@ -254,8 +246,10 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
     
 			//Replace all occurences of pattern
 			stringstream strstrm;
+            strstrm.str("");
 			strstrm << availables[j];
-			file = ReplaceString(file, patterns[availables[j]], strstrm.str());
+            file = boost::replace_all_copy(file, strstrm.str(), patterns[availables[j]]);
+			//file = ReplaceString(file, patterns[availables[j]], strstrm.str());
 		}
 	}
 	
@@ -273,6 +267,7 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
     }
     cout << "Header: " << newss.str() << endl;
     //rtrim(file);
+    boost::trim_right(file);
     newss << file;
     size_t ofilesize = newss.str().size() * sizeof(char);
     cout << "Output file size: " << ofilesize << endl;
@@ -312,11 +307,7 @@ int Decompress::PatternDecompress(const char* InputFileName, const char* OutputF
 	for (int i = keys.size()-1; i >= 0; i--)
 	{
 		converter << keys[i];
-		// boost::replace_all(file, converter.str().c_str(), patterns[keys[i]].c_str());
-		for (int i = 0; i < length; i++)
-		{
-
-		}
+        file = boost::replace_all_copy(file, converter.str().c_str(), patterns[keys[i]].c_str());
 		converter.str("");
 	}
 
