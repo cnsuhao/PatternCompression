@@ -21,11 +21,11 @@ int main(int argc, char const *argv[])
 			bool opencl = true;
 			if (argc == 5)
 			{
-				if (argv[4] == "true")
+				if (argv[4][0] == 't')
 				{
 					opencl = true;
 				}
-				else if (argv[4] == "false")
+				else if (argv[4][0] == 'f')
 				{
 					opencl = false;
 				}
@@ -34,7 +34,19 @@ int main(int argc, char const *argv[])
 		}
 		else if (argv[1][0] == 'd')
 		{
-			return Decompress::PatternDecompress(argv[2], argv[3]);
+			bool debug = false;
+			if (argc == 5)
+			{
+				if (argv[4][0] == 't' || argv[4][0] == 'd')
+				{
+					debug = true;
+				}
+				else if (argv[4][0] == 'f')
+				{
+					debug = false;
+				}
+			}
+			return Decompress::PatternDecompress(argv[2], argv[3], debug);
 		}
 		else
 		{
@@ -44,7 +56,8 @@ int main(int argc, char const *argv[])
 	else
 	{
 		std::cout << "Usage:\n\t";
-		std::cout << "pc <compress/decompress> <input> <output> <true/false - Use OpenCL>\n";
+		std::cout << "pc compress <input> <output> <true/false - Use OpenCL>\n\t";
+		std::cout << "pc decompress <input> <output> <true/false - Pattern debugging>\n";
 	}
 	
 }

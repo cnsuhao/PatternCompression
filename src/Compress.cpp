@@ -36,6 +36,16 @@ unsigned getTickCount()
 #endif
 }
 
+void replaceAll(std::string& str, const std::string& from, const std::string& to) {
+	if (from.empty())
+		return;
+	size_t start_pos = 0;
+	while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+		str.replace(start_pos, from.length(), to);
+		start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+	}
+}
+
 void ComputeScore(vector<string>* combos, map<string, int>* scores, int i) {
 	if ((*scores).find((*combos)[i]) == (*scores).end()) {}
 	else {
@@ -177,7 +187,7 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 
 			patterns[availables[j]] = pattern;
 			keys.push_back(availables[j]);
-			cout << availables[j] << "\t\t" << patterns[availables[j]] << endl;
+			cout << "\t" << availables[j] << " (" << (int)availables[j] << ") = \"" << patterns[availables[j]] << "\" - " << patterns[availables[j]].size() << " bytes" << endl;
 
 			//Replace all occurences of pattern
 			//stringstream strstrm;
@@ -188,8 +198,14 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
             stringstream strstrm;
             strstrm.str("");
             strstrm << availables[j];
-            file = boost::replace_all_copy(file, strstrm.str(), patterns[availables[j]]);
-            b::algorithm::replace_all(file, strstrm.str(), <#const Range2T &Format#>)
+			// file = boost::replace_all_copy(file, strstrm.str(), patterns[availables[j]]);
+			// string strkey = availables[j];
+			//char* strkey = { availables[j] };
+			//b::algorithm::replace_all(file, (string)availables[j], patterns[availables[j]]);
+			//std::replace(file.begin(), file.end(), availables[j], patterns[availables[j]].c_str());
+			replaceAll(file, patterns[availables[j]], strstrm.str());
+
+
 		}
 		
 		
@@ -242,14 +258,17 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 			
 			patterns[availables[j]] = pattern;
 			keys.push_back(availables[j]);
-			cout << availables[j] << "\t\t" << patterns[availables[j]] << endl;
-    
+			//cout << availables[j] << "\t\t" << patterns[availables[j]] << endl;
+			//cout << "\t" << availables[j] << " = \"" << patterns[availables[j]] << "\"" << endl;
+			cout << "\t" << availables[j] << " (" << (int)availables[j] << ") = \"" << patterns[availables[j]] << "\" - " << patterns[availables[j]].size() << " bytes" << endl;
+
 			//Replace all occurences of pattern
 			stringstream strstrm;
             strstrm.str("");
 			strstrm << availables[j];
-            file = boost::replace_all_copy(file, strstrm.str(), patterns[availables[j]]);
+            //file = boost::replace_all_copy(file, strstrm.str(), patterns[availables[j]]);
 			//file = ReplaceString(file, patterns[availables[j]], strstrm.str());
+			replaceAll(file, patterns[availables[j]], strstrm.str());
 		}
 	}
 	
@@ -261,9 +280,11 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
     cout << "Saved characters: " << savedChars << endl;
 	
     stringstream newss;
+	newss.str("");
     newss << (char)keys.size();
-    for (int i = keys.size()-1; i >= 0; i--) {
-        newss << (char)patterns[keys[i]].size() << keys[i] << patterns[keys[i]];
+	cout << "(" << newss.str() << ")\n";
+    for (int i = 0; i < keys.size(); i++) {
+        newss << (char)(patterns[keys[i]].size()) << keys[i] << patterns[keys[i]];
     }
     cout << "Header: " << newss.str() << endl;
     //rtrim(file);
@@ -281,35 +302,53 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 
 
 
-int Decompress::PatternDecompress(const char* InputFileName, const char* OutputFileName) {
+int Decompress::PatternDecompress(const char* InputFileName, const char* OutputFileName, bool debug) {
     string file;
-    b::filesystem::load_string_file(b::filesystem::path(InputFileName), file);
-    int patternCount;
-    patternCount = file[0];
+    //b::filesystem::load_string_file(b::filesystem::path(InputFileName), file);
+	ifstream infile; infile.open(InputFileName); if (!infile) { cout << "Couldn't open " << InputFileName << endl; return -1; }
+	stringstream filestream;
+	string curLine;
+	while (!infile.eof()) {
+		getline(infile, curLine);
+		filestream << curLine << '\n';
+	}
+	file = filestream.str();
+    int patternCount = file[0];
     
 	cout << "Decompressing..." << endl;
+	cout << "Detected " << (int)patternCount << " patterns: \n";
+
+	unsigned int beginTime = getTickCount();
 
     int p = 1;
-    int patternSize;
+	int patternSize;
     map<char, string> patterns;
 	vector<char> keys;
-
-    for (int x = 0; x < patternCount; x++) {
-        patternSize = file[p];
+	
+    for (int x = patternCount-1; x >= 0; x--) {
+        patternSize = (int)file[p];
         patterns[file[p+1]] = file.substr(p+2, patternSize);
-		keys.push_back(file[p + 1]);
+		keys.push_back(file[p+1]);
+		if (debug)
+		{
+			cout << "\t" << (int)file[p+1] << " = \"" << patterns[file[p+1]] << "\"\n";
+		}
         p += 2 + patternSize;
     }
     
     file = file.substr(p,file.size()-p);
 	stringstream converter;
 	converter.str("");
-	for (int i = keys.size()-1; i >= 0; i--)
+
+	for (int i = 0; i < keys.size(); i++)
 	{
 		converter << keys[i];
-        file = boost::replace_all_copy(file, converter.str().c_str(), patterns[keys[i]].c_str());
+        //file = boost::replace_all_copy(file, converter.str().c_str(), patterns[keys[i]].c_str());
+		replaceAll(file, converter.str(), patterns[keys[i]]);
 		converter.str("");
 	}
+
+	cout << "Decompress time: " << getTickCount() - beginTime << " ms\n";
 
 	ofstream outfile(OutputFileName);
 	outfile << file;
