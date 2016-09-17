@@ -14,12 +14,12 @@
 #include <map>
 
 // Platform specific
-#ifdef __APPLE__
-#include <math.h>
-#include <sys/time.h>
-#elif _WIN32 
+#ifdef _WIN32 
 #include <ctime>
 #include <functional>
+#else
+#include <math.h>
+#include <sys/time.h>
 #endif
 
 namespace bc = boost::compute; namespace b = boost;
@@ -64,6 +64,8 @@ void ComputeScore(vector<string>* combos, map<string, int>* scores, int i) {
 
 int Compress::PatternCompress(const char* InputFileName, const char* OutputFileName, bool useOpenCL)
 {
+	
+
 	ifstream infile; infile.open(InputFileName); if (!infile) { cout << "Couldn't open " << InputFileName << endl; return -1; }
 	vector<string> lines = vector<string>();
 	string curLine;
@@ -93,34 +95,34 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 	vector<char> unusables = vector<char>();
 	unusables.push_back('\n');
 	unusables.push_back('\0');
-	unusables.push_back((char)3);
-	unusables.push_back((char)4);
-	unusables.push_back((char)5);
-	unusables.push_back((char)6);
+	//unusables.push_back((char)3);
+	//unusables.push_back((char)4);
+	//unusables.push_back((char)5);
+	//unusables.push_back((char)6);
 	unusables.push_back((char)7);
-	unusables.push_back((char)8);
-	unusables.push_back((char)11);
-	unusables.push_back((char)12);
-	unusables.push_back((char)14);
-	unusables.push_back((char)15);
-	unusables.push_back((char)16);
-	unusables.push_back((char)17);
-	unusables.push_back((char)18);
-	unusables.push_back((char)19);
-	unusables.push_back((char)20);
-	unusables.push_back((char)21);
-	unusables.push_back((char)22);
-	unusables.push_back((char)23);
-	unusables.push_back((char)24);
-	unusables.push_back((char)25);
+	//unusables.push_back((char)8);
+	//unusables.push_back((char)11);
+	//unusables.push_back((char)12);
+	//unusables.push_back((char)14);
+	//unusables.push_back((char)15);
+	//unusables.push_back((char)16);
+	//unusables.push_back((char)17);
+	//unusables.push_back((char)18);
+	//unusables.push_back((char)19);
+	//unusables.push_back((char)20);
+	//unusables.push_back((char)21);
+	//unusables.push_back((char)22);
+	//unusables.push_back((char)23);
+	//unusables.push_back((char)24);
+	//unusables.push_back((char)25);
 	unusables.push_back((char)26);
-	unusables.push_back((char)27);
-	unusables.push_back((char)28);
-	unusables.push_back((char)29);
-	unusables.push_back((char)30);
-	unusables.push_back((char)31);
-	unusables.push_back((char)37);
-	unusables.push_back((char)38);
+	//unusables.push_back((char)27);
+	//unusables.push_back((char)28);
+	//unusables.push_back((char)29);
+	//unusables.push_back((char)30);
+	//unusables.push_back((char)31);
+	//unusables.push_back((char)37);
+	//unusables.push_back((char)38);
 
 #ifdef _WIN32
 	auto it = std::find(availables.begin(), availables.end(), unusables[0]);
@@ -315,7 +317,7 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 	
     stringstream newss;
 	newss.str("");
-    newss << (char)keys.size();
+    newss << (unsigned char)keys.size();
 	cout << "(" << newss.str() << ")\n";
     for (int i = 0; i < keys.size(); i++) {
         newss << (char)(patterns[keys[i]].size()) << keys[i] << patterns[keys[i]];
@@ -337,23 +339,10 @@ int Compress::PatternCompress(const char* InputFileName, const char* OutputFileN
 
 
 int Decompress::PatternDecompress(const char* InputFileName, const char* OutputFileName, bool debug) {
-    //string file;
-    //b::filesystem::load_string_file(b::filesystem::path(InputFileName), file);
 	ifstream infile; infile.open(InputFileName); if (!infile) { cout << "Couldn't open " << InputFileName << endl; return -1; }
-	/*stringstream filestream;
-	string curLine;
-	while (!infile.eof()) {
-		//getline(infile, curLine);
-		//filestream << curLine << '\n';
-		filestream << infile;
-		infile >> filestream;
-		file << infile.get;
-	}
-	file = filestream.str();*/
 	string file{ istreambuf_iterator<char>(infile), istreambuf_iterator<char>() };
+    int patternCount = (unsigned char)file[0];
 
-    int patternCount = file[0];
-    
 	cout << "Decompressing..." << endl;
 	cout << "Detected " << (int)patternCount << " patterns: \n";
 
@@ -364,13 +353,14 @@ int Decompress::PatternDecompress(const char* InputFileName, const char* OutputF
     map<unsigned char, string> patterns;
 	vector<unsigned char> keys;
 	
-    for (int x = patternCount-1; x >= 0; x--) {
-        patternSize = (int)file[p];
+    for (int i = 0; i < patternCount; i++) {
+		patternSize = (int)((unsigned char)file[p]);
         patterns[file[p+1]] = file.substr(p+2, patternSize);
 		keys.push_back(file[p+1]);
 		if (debug)
 		{
-			cout << "\t" << (int)file[p+1] << " = \"" << patterns[file[p+1]] << "\"\n";
+			cout << "\t" << (int)((unsigned char)file[p+1]) << " = \"" << patterns[file[p+1]] << "\"\n";
+			
 		}
         p += 2 + patternSize;
     }
@@ -379,11 +369,12 @@ int Decompress::PatternDecompress(const char* InputFileName, const char* OutputF
 	stringstream converter;
 	converter.str("");
 
-	for (int i = 0; i < keys.size(); i++)
+	for (int i = keys.size()-1; i >= 0; i--)
 	{
 		converter << keys[i];
         //file = boost::replace_all_copy(file, converter.str().c_str(), patterns[keys[i]].c_str());
 		replaceAll(file, converter.str(), patterns[keys[i]]);
+		//replaceThread(file, keys[i], patterns[keys[i]]);
 		converter.str("");
 	}
 
